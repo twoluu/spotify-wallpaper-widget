@@ -7,15 +7,17 @@ Pixel Agents, з табличкою «SPOTIFY». Попередній вигля
 
 ![Віджет](preview.png)
 
-## Встановлення на інший комп'ютер
+## Встановлення
 
 Потрібно: Windows 10 (версія 1809 або новіша) чи Windows 11 і застосунок Spotify. Права адміністратора не потрібні.
 
-Репозиторій приватний, тому спершу увійди на github.com під своїм акаунтом.
+Одним рядком: відкрий PowerShell (Win+X → «Windows PowerShell» або «Термінал») і встав:
 
-1. Відкрий https://github.com/twoluu/spotify-wallpaper-widget → **Code** → **Download ZIP** і розпакуй архів.
-2. Двічі клацни `install.cmd`.
+```powershell
+irm https://raw.githubusercontent.com/twoluu/spotify-wallpaper-widget/main/install.ps1 | iex
+```
 
+Або вручну: **Code** → **Download ZIP**, розпакуй архів і двічі клацни `install.cmd`.
 Або через git:
 
 ```powershell
@@ -24,11 +26,10 @@ powershell -ExecutionPolicy Bypass -File spotify-wallpaper-widget\install.ps1
 ```
 
 Інсталятор кладе віджет у `%LOCALAPPDATA%\SpotifyWidget`, додає його в автозапуск Windows і одразу запускає.
-Якщо запустити його ще раз, віджет оновиться, а збережене місце на екрані лишиться.
+Якщо запустити його ще раз, віджет оновиться до останньої версії, а збережене місце на екрані лишиться.
 Параметри `install.ps1`: `-NoAutostart` (без автозапуску), `-NoStart` (не запускати зараз), `-InstallDir <папка>`.
-
-Якщо репозиторій колись стане публічним, встановлювати можна одним рядком у PowerShell:
-`irm https://raw.githubusercontent.com/twoluu/spotify-wallpaper-widget/main/install.ps1 | iex`
+В однорядковому варіанті їх передають так:
+`& ([scriptblock]::Create((irm https://raw.githubusercontent.com/twoluu/spotify-wallpaper-widget/main/install.ps1))) -NoAutostart`
 
 Видалити (закрити, прибрати з автозапуску й видалити папку):
 
@@ -83,6 +84,12 @@ A Spotify "now playing" card for the Windows desktop (it sits on the wallpaper, 
 artist, progress bar (click to seek) and shuffle / previous / play-pause / next / repeat, in a pixel-art wooden frame.
 It reads Windows' own media controls, so it needs no Spotify login or API key. Windows 10 1809+ or 11.
 
-Install: download the ZIP (Code → Download ZIP), unpack it and double-click `install.cmd`, or run
-`powershell -ExecutionPolicy Bypass -File install.ps1`. It goes to `%LOCALAPPDATA%\SpotifyWidget`, starts with
-Windows, and `uninstall.ps1` there removes it.
+Install, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/twoluu/spotify-wallpaper-widget/main/install.ps1 | iex
+```
+
+or download the ZIP (Code → Download ZIP), unpack it and double-click `install.cmd`. It goes to
+`%LOCALAPPDATA%\SpotifyWidget` and starts with Windows; run the same line again to update.
+Remove it with `powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\SpotifyWidget\uninstall.ps1"`.
