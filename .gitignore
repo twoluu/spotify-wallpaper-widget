@@ -1,0 +1,5 @@
+# Per-computer state the widget writes next to itself
+settings.json
+widget.log
+# Local backups
+*.bak*

@@ -1,0 +1,88 @@
+# Віджет Spotify на шпалерах
+
+Картка на робочому столі другого монітора, під усіма вікнами (як Pixel Agents): обкладинка,
+назва треку, виконавець, прогрес і кнопки. Вона в тій самій піксельній дерев'яній рамці, що й офіс
+Pixel Agents, з табличкою «SPOTIFY». Попередній вигляд (темне скло) лежить у `spotify-widget.ps1.bak-glass`
+(лише на комп'ютері, де віджет створено; у репозиторій не входить).
+
+![Віджет](preview.png)
+
+## Встановлення на інший комп'ютер
+
+Потрібно: Windows 10 (версія 1809 або новіша) чи Windows 11 і застосунок Spotify. Права адміністратора не потрібні.
+
+Репозиторій приватний, тому спершу увійди на github.com під своїм акаунтом.
+
+1. Відкрий https://github.com/twoluu/spotify-wallpaper-widget → **Code** → **Download ZIP** і розпакуй архів.
+2. Двічі клацни `install.cmd`.
+
+Або через git:
+
+```powershell
+git clone https://github.com/twoluu/spotify-wallpaper-widget.git
+powershell -ExecutionPolicy Bypass -File spotify-wallpaper-widget\install.ps1
+```
+
+Інсталятор кладе віджет у `%LOCALAPPDATA%\SpotifyWidget`, додає його в автозапуск Windows і одразу запускає.
+Якщо запустити його ще раз, віджет оновиться, а збережене місце на екрані лишиться.
+Параметри `install.ps1`: `-NoAutostart` (без автозапуску), `-NoStart` (не запускати зараз), `-InstallDir <папка>`.
+
+Якщо репозиторій колись стане публічним, встановлювати можна одним рядком у PowerShell:
+`irm https://raw.githubusercontent.com/twoluu/spotify-wallpaper-widget/main/install.ps1 | iex`
+
+Видалити (закрити, прибрати з автозапуску й видалити папку):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\SpotifyWidget\uninstall.ps1"
+```
+
+Якщо монітор один, віджет стає внизу по центру основного монітора. Його видно на робочому столі, під усіма вікнами.
+
+## Як це працює
+
+| Кнопка | Що робить |
+|---|---|
+| 🔀 | перемішати наступні пісні (зелена, коли увімкнено) |
+| ⏮ ⏯ ⏭ | попередній, пауза/грати, наступний |
+| 🔁 | повтор: вимкнено → весь список → один трек (зелена, коли увімкнено) |
+| смуга прогресу | клік — перемотати в це місце |
+
+🔀 і 🔁 сірі й не натискаються, поки Spotify закритий.
+
+Якщо другий монітор вимкнений, віджет тимчасово стає на основний і сам повертається, коли монітор знову з'явиться.
+
+- Дані бере з медіа-керування Windows (те саме, що показує спливна панель гучності), тому
+  не потрібні ні логін Spotify, ні API-ключ.
+- **Перетягни картку мишею**, щоб перемістити. Місце зберігається в `settings.json`.
+- **Клік по обкладинці** відкриває Spotify. Якщо Spotify закритий, ▶ теж його відкриває.
+- Фокус не забирає, у панелі задач і Alt+Tab не з'являється.
+- Запускається разом з Windows (ярлик `Spotify Widget` у папці «Автозавантаження»).
+
+## Команди
+
+Папка віджета: `%LOCALAPPDATA%\SpotifyWidget` після встановлення (на комп'ютері, де його створено, — `E:\code\spotify-widget`).
+
+```powershell
+# запустити
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\SpotifyWidget\start-spotify-widget.ps1"
+# закрити
+powershell -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\SpotifyWidget\stop-spotify-widget.ps1"
+# повернути на початкове місце (центр низу другого монітора)
+powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File "$env:LOCALAPPDATA\SpotifyWidget\spotify-widget.ps1" -Reset
+```
+
+Інші параметри `spotify-widget.ps1`: `-Monitor primary` (на основний монітор),
+`-BottomMargin 50` (відступ від низу), `-Source chrome` (показувати YouTube у Chrome замість Spotify).
+
+Помилки пишуться в `widget.log` у папці віджета. Прибрати лише автозапуск: `uninstall.ps1 -KeepFiles` або видалити
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Spotify Widget.lnk`.
+
+## English
+
+A Spotify "now playing" card for the Windows desktop (it sits on the wallpaper, under all windows): cover, title,
+artist, progress bar (click to seek) and shuffle / previous / play-pause / next / repeat, in a pixel-art wooden frame.
+It reads Windows' own media controls, so it needs no Spotify login or API key. Windows 10 1809+ or 11.
+
+Install: download the ZIP (Code → Download ZIP), unpack it and double-click `install.cmd`, or run
+`powershell -ExecutionPolicy Bypass -File install.ps1`. It goes to `%LOCALAPPDATA%\SpotifyWidget`, starts with
+Windows, and `uninstall.ps1` there removes it.

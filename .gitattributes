@@ -1,0 +1,2 @@
+# Keep files byte for byte (the widget script starts with a UTF-8 BOM, which Windows PowerShell 5.1 needs for its Ukrainian text).
+* -text
