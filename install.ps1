@@ -9,8 +9,10 @@
 #   -InstallDir <path>   where the widget goes (default: %LOCALAPPDATA%\SpotifyWidget)
 #   -NoAutostart         do not start it together with Windows
 #   -NoStart             do not start it now
-# Running it again updates the widget and keeps its saved position.
+#   -Style glass|wood    the look: dark glass card (default) or pixel-art wooden frame
+# Running it again updates the widget and keeps its saved position and look.
 param(
+    [ValidateSet('', 'glass', 'wood')][string]$Style = '',
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA 'SpotifyWidget'),
     [switch]$NoAutostart,
     [switch]$NoStart
@@ -62,6 +64,18 @@ if (-not (Test-Path $widget)) { throw "spotify-widget.ps1 was not found in $src"
 Get-ChildItem $target -File | Unblock-File   # files from the internet would otherwise be blocked
 if ($tmp) { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 Write-Host "Installed to $target"
+
+# The look goes into settings.json, next to the saved position.
+if ($Style) {
+    $settingsPath = Join-Path $target 'settings.json'
+    $h = @{}
+    if (Test-Path $settingsPath) {
+        try { (Get-Content $settingsPath -Raw | ConvertFrom-Json).psobject.Properties | ForEach-Object { $h[$_.Name] = $_.Value } } catch {}
+    }
+    $h['style'] = $Style
+    $h | ConvertTo-Json | Set-Content -Path $settingsPath -Encoding UTF8
+    Write-Host "Look: $Style"
+}
 
 # Start together with Windows: a shortcut in the user's Startup folder.
 $lnk = Join-Path ([Environment]::GetFolderPath('Startup')) 'Spotify Widget.lnk'

@@ -1,18 +1,20 @@
-﻿# Spotify widget on the wallpaper: cover, track, artist, progress bar and previous / play-pause / next,
-# in the same pixel-art wooden frame as the Pixel Agents office (with a "SPOTIFY" name plate).
+﻿# Spotify widget on the wallpaper: cover, track, artist, progress bar and shuffle / previous / play-pause /
+# next / repeat. Two looks: a dark glass card (default) or a pixel-art wooden frame with a "SPOTIFY" name plate.
 # It reads what Spotify plays from Windows' own media controls (the same source as the volume pop-up),
-# so it needs no Spotify login or API key. It sits on the desktop layer, under every window, like the
-# Pixel Agents office, and never takes focus.
+# so it needs no Spotify login or API key. It sits on the desktop layer, under every window, and never
+# takes focus.
 #   Drag the card to move it; the spot is remembered in settings.json next to this script.
-#   Click the cover to open Spotify.
+#   Click the cover to open Spotify; ▶ starts Spotify and its music when Spotify is closed.
 # Parameters:
+#   -Style glass|wood            the look; remembered in settings.json, so it is needed only once
 #   -Monitor primary|secondary   where it goes the first time (until you drag it somewhere)
 #   -BottomMargin                gap to the bottom edge of that monitor, in pixels
 #   -Source                      regex matched against the player's app id; 'chrome' tests it with YouTube
 #   -Reset                       forget the dragged position
-#   -Snapshot <file.png>         render the card to a PNG after 3 s and exit, with every optional button shown
+#   -Snapshot <file.png>         render the card to a PNG after 3 s and exit
 #                                (for checking the layout; runs beside the real widget, off screen)
 param(
+    [ValidateSet('', 'glass', 'wood')][string]$Style = '',
     [ValidateSet('primary', 'secondary')][string]$Monitor = 'secondary',
     [int]$BottomMargin = 50,
     [string]$Source = 'Spotify',
@@ -29,7 +31,24 @@ $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $settingsPath = Join-Path $dir 'settings.json'
 $logPath = Join-Path $dir 'widget.log'
 function Log($m) { try { Add-Content -Path $logPath -Value ('{0:yyyy-MM-dd HH:mm:ss} {1}' -f (Get-Date), $m) -Encoding UTF8 } catch {} }
-if ($Reset -and (Test-Path $settingsPath)) { Remove-Item $settingsPath -Force }
+
+# settings.json (this computer only): the dragged position (x, y) and the look (style).
+function Read-Settings {
+    $h = @{}
+    if (Test-Path $settingsPath) {
+        try { (Get-Content $settingsPath -Raw | ConvertFrom-Json).psobject.Properties | ForEach-Object { $h[$_.Name] = $_.Value } }
+        catch { Log "settings: $_" }
+    }
+    $h
+}
+function Save-Settings($h) { try { $h | ConvertTo-Json | Set-Content -Path $settingsPath -Encoding UTF8 } catch { Log "settings: $_" } }
+
+$settings = Read-Settings
+if ($Reset) { $settings.Remove('x'); $settings.Remove('y'); Save-Settings $settings }
+# The look: -Style wins and is remembered (except in a -Snapshot); otherwise the remembered one; otherwise glass.
+if ($Style) { if (-not $Snapshot -and $settings['style'] -ne $Style) { $settings['style'] = $Style; Save-Settings $settings } }
+elseif ($settings['style'] -in 'glass', 'wood') { $Style = $settings['style'] }
+else { $Style = 'glass' }
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Windows.Forms, System.Drawing, System.Runtime.WindowsRuntime
 
@@ -213,39 +232,17 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
 }
 
 # --- The card ---------------------------------------------------------------------------------------
-# Window = 440x136 content + 32 px of wood on every side + half a plate below: 504 x 213.
-[xml]$xaml = @'
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Spotify Widget" Width="504" Height="213"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ShowInTaskbar="False" ResizeMode="NoResize" ShowActivated="False" Topmost="False"
-        FontFamily="Segoe UI" UseLayoutRounding="True" SnapsToDevicePixels="True">
-  <Window.Resources>
-    <Style x:Key="IconBtn" TargetType="ButtonBase">
-      <Setter Property="Foreground" Value="#E6FFFFFF"/>
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Width" Value="34"/>
-      <Setter Property="Height" Value="34"/>
-      <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-      <Setter Property="FontSize" Value="13"/>
-      <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Focusable" Value="False"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="ButtonBase">
-            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="3">
-              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#38F3D27A"/></Trigger>
-              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Background" Value="#60F3D27A"/></Trigger>
-              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35"/></Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
+# Two looks share everything inside the card (cover, text, buttons, progress); only the outside differs:
+#   glass: a 440x136 dark glass card with rounded corners and a "● SPOTIFY" badge
+#   wood:  the same content in the pixel-art wooden frame (New-WoodFrame) with a "SPOTIFY" name plate;
+#          the window is 440x136 + 32 px of wood on every side + half a plate below = 504 x 213
+$Wood = $Style -eq 'wood'
+$WinW = if ($Wood) { 504 } else { 440 }
+$WinH = if ($Wood) { 213 } else { 136 }
+
+if ($Wood) {
+    $IconBtnLook = @{ Radius = 3; Hover = '#38F3D27A'; Press = '#60F3D27A' }
+    $PlayBtnStyle = @'
     <Style x:Key="PlayBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
       <Setter Property="Foreground" Value="#FF3B2208"/>
       <Setter Property="Width" Value="38"/>
@@ -270,6 +267,92 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
         </Setter.Value>
       </Setter>
     </Style>
+'@
+    # the wooden frame; the panel fills its see-through opening
+    $CardOpen = @'
+    <Image x:Name="WoodFrame" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"
+           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+    <Grid x:Name="Panel" Margin="32,32,32,45" ClipToBounds="True">
+    <Border Background="#F2181009"/>
+'@
+    $BgArtOpacity = '0.45'; $ArtRadius = 2; $TitleRight = 16
+    # green while playing, grey otherwise; the name is on the plate
+    $CardClose = @'
+    <Rectangle x:Name="Dot" Width="6" Height="6" Fill="#1DB954" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0"/>
+    </Grid>
+'@
+} else {
+    $IconBtnLook = @{ Radius = 17; Hover = '#26FFFFFF'; Press = '#45FFFFFF' }
+    $PlayBtnStyle = @'
+    <Style x:Key="PlayBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
+      <Setter Property="Foreground" Value="#FF101214"/>
+      <Setter Property="Width" Value="38"/>
+      <Setter Property="Height" Value="38"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="#F2FFFFFF" CornerRadius="19">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#FFFFFFFF"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Background" Value="#FFD0D0D0"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+'@
+    $CardOpen = @'
+    <Grid.Clip><RectangleGeometry Rect="0,0,440,136" RadiusX="18" RadiusY="18"/></Grid.Clip>
+    <Grid x:Name="Panel">
+    <Border Background="#E0121517"/>
+'@
+    $BgArtOpacity = '0.6'; $ArtRadius = 10; $TitleRight = 62
+    $CardClose = @'
+    <Border CornerRadius="18" BorderBrush="#2EFFFFFF" BorderThickness="1"/>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,14,16,0">
+      <Ellipse x:Name="Dot" Width="7" Height="7" Fill="#1DB954" VerticalAlignment="Center"/>
+      <TextBlock Text="SPOTIFY" FontSize="9.5" FontWeight="Bold" Foreground="#8CFFFFFF" Margin="5,0,0,0" VerticalAlignment="Center"/>
+    </StackPanel>
+    </Grid>
+'@
+}
+
+[xml]$xaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Spotify Widget" Width="$WinW" Height="$WinH"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ResizeMode="NoResize" ShowActivated="False" Topmost="False"
+        FontFamily="Segoe UI" UseLayoutRounding="True" SnapsToDevicePixels="True">
+  <Window.Resources>
+    <Style x:Key="IconBtn" TargetType="ButtonBase">
+      <Setter Property="Foreground" Value="#E6FFFFFF"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Width" Value="34"/>
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ButtonBase">
+            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="$($IconBtnLook.Radius)">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="$($IconBtnLook.Hover)"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Background" Value="$($IconBtnLook.Press)"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+$PlayBtnStyle
     <Style x:Key="SmallBtn" TargetType="ButtonBase" BasedOn="{StaticResource IconBtn}">
       <Setter Property="Width" Value="28"/>
       <Setter Property="Height" Value="28"/>
@@ -288,12 +371,8 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
   </Window.Resources>
 
   <Grid x:Name="Root" Background="Transparent">
-    <!-- the wooden frame (New-WoodFrame); the panel below fills its see-through opening -->
-    <Image x:Name="Wood" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"
-           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-    <Grid x:Name="Panel" Margin="32,32,32,45" ClipToBounds="True">
-    <Border Background="#F2181009"/>
-    <Image x:Name="BgArt" Stretch="UniformToFill" Opacity="0.45" Margin="-60">
+$CardOpen
+    <Image x:Name="BgArt" Stretch="UniformToFill" Opacity="$BgArtOpacity" Margin="-60">
       <Image.CacheMode><BitmapCache/></Image.CacheMode>
       <Image.Effect><BlurEffect Radius="70" KernelType="Gaussian"/></Image.Effect>
     </Image>
@@ -314,7 +393,7 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
 
       <Button x:Name="ArtBtn" Style="{StaticResource ArtBtn}">
         <Grid Width="108" Height="108">
-          <Border x:Name="ArtBox" CornerRadius="2" Background="#1FFFFFFF">
+          <Border x:Name="ArtBox" CornerRadius="$ArtRadius" Background="#1FFFFFFF">
             <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.45"/></Border.Effect>
           </Border>
           <TextBlock x:Name="ArtGlyph" Text="&#xE8D6;" FontFamily="Segoe MDL2 Assets" FontSize="36"
@@ -331,7 +410,7 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
           <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <TextBlock x:Name="TitleText" FontSize="17" FontWeight="SemiBold" Foreground="White"
-                   TextTrimming="CharacterEllipsis" Margin="0,0,16,0"/>
+                   TextTrimming="CharacterEllipsis" Margin="0,0,$TitleRight,0"/>
         <TextBlock x:Name="ArtistText" Grid.Row="1" FontSize="13" Foreground="#B8FFFFFF"
                    TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
 
@@ -365,20 +444,18 @@ function New-WoodFrame([int]$Width, [int]$Height, [string]$Name) {
       </Grid>
     </Grid>
 
-    <!-- green while playing, grey otherwise; the name is on the plate -->
-    <Rectangle x:Name="Dot" Width="6" Height="6" Fill="#1DB954" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0"/>
-    </Grid>
+$CardClose
   </Grid>
 </Window>
-'@
+"@
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
-foreach ($n in 'Root', 'Wood', 'Panel', 'BgArt', 'ArtBtn', 'ArtBox', 'ArtGlyph', 'TitleText', 'ArtistText', 'PrevBtn', 'PlayBtn', 'PlayGlyph',
+foreach ($n in 'Root', 'WoodFrame', 'Panel', 'BgArt', 'ArtBtn', 'ArtBox', 'ArtGlyph', 'TitleText', 'ArtistText', 'PrevBtn', 'PlayBtn', 'PlayGlyph',
                'NextBtn', 'ShuffleBtn', 'RepeatBtn', 'SeekArea',
                'PosText', 'Track', 'Fill', 'EndText', 'Dot') {
     Set-Variable -Name $n -Value $win.FindName($n) -Scope Script
 }
 
-$Wood.Source = New-WoodFrame 440 136 'SPOTIFY'
+if ($Wood) { $WoodFrame.Source = New-WoodFrame 440 136 'SPOTIFY' }
 
 $GlyphPlay  = [string][char]0xE768
 $GlyphPause = [string][char]0xE769
@@ -394,7 +471,7 @@ $RepeatT = [Windows.Media.Control.GlobalSystemMediaTransportControlsSession].Get
 
 $state = @{ key = $null; artKey = $null; artRetry = 0; playing = $false; pos = 0.0; end = 0.0; start = 0.0
             at = [DateTimeOffset]::Now; tick = 0; force = $true; idle = $null
-            shuffle = $false; repeat = 'None'; canSeek = $false; displayAt = $null }
+            shuffle = $false; repeat = 'None'; canSeek = $false; displayAt = $null; playAfterOpen = $null }
 
 # Shuffle / repeat buttons: always shown, dimmed while the player does not allow them, green when on.
 function Set-ModeButtons([bool]$canShuffle, [bool]$canRepeat) {
@@ -417,12 +494,16 @@ function Set-Art($bmp) {
     }
 }
 
-function Show-Idle {
-    if ($state.idle -eq $true) { return }
+# $why: 'closed' = Spotify is not running; 'empty' = it runs but has no song loaded yet (just started), and then
+# only Spotify itself can start the music: Windows' play command does nothing until a song is picked there.
+function Show-Idle([string]$why = 'closed') {
+    if ($state.idle -eq $true -and $state.idleWhy -eq $why) { return }
+    $state.idleWhy = $why
     $state.idle = $true; $state.key = $null; $state.artKey = $null; $state.playing = $false; $state.end = 0
     Set-Art $null
     $TitleText.Text = 'Spotify не грає'
-    $ArtistText.Text = 'Натисни ▶, щоб відкрити'
+    $ArtistText.Text = if ($why -eq 'empty') { 'Обери пісню в Spotify' }
+                       elseif ($state.playAfterOpen) { 'Запускаю Spotify…' } else { 'Натисни ▶, щоб увімкнути' }
     $PlayGlyph.Text = $GlyphPlay
     $PrevBtn.IsEnabled = $false; $NextBtn.IsEnabled = $false
     $PosText.Text = ''; $EndText.Text = ''; $Fill.Width = 0
@@ -435,10 +516,18 @@ function Show-Idle {
 function Refresh {
     $s = Get-Player
     $script:session = $s
-    if (-not $s) { Show-Idle; return }
+    # ▶ was pressed while Spotify was closed: once it shows up in the media controls, start the music.
+    if ($state.playAfterOpen) {
+        if ([DateTime]::Now -gt $state.playAfterOpen) { $state.playAfterOpen = $null; $state.idle = $null }
+        elseif ($s -and "$($s.GetPlaybackInfo().PlaybackStatus)" -eq 'Playing') { $state.playAfterOpen = $null }
+        elseif ($s -and $s.GetPlaybackInfo().Controls.IsPlayEnabled) {
+            if (Await ($s.TryPlayAsync()) ([bool]) 1500) { $state.playAfterOpen = $null; Log 'started Spotify and its music' }
+        }
+    }
+    if (-not $s) { Show-Idle 'closed'; return }
 
     $props = Await ($s.TryGetMediaPropertiesAsync()) $PropsT 1500
-    if (-not $props -or [string]::IsNullOrWhiteSpace($props.Title)) { Show-Idle; return }
+    if (-not $props -or [string]::IsNullOrWhiteSpace($props.Title)) { Show-Idle 'empty'; return }
     if ($state.idle -ne $false) {
         $state.idle = $false
         $PrevBtn.IsEnabled = $true; $NextBtn.IsEnabled = $true; $Panel.Opacity = 1
@@ -491,7 +580,33 @@ function Update-Progress {
 }
 
 # --- Controls -----------------------------------------------------------------------------------
-function Open-Spotify { try { Start-Process 'spotify:' } catch { Log "open spotify: $_" } }
+# Starts the Spotify app: the one already running, the usual desktop install (%APPDATA%\Spotify), the Microsoft Store
+# version, or whatever handles spotify: links. (spotify: alone fails on computers where nothing registered it.)
+function Find-SpotifyExe {
+    $p = Get-Process -Name Spotify -ErrorAction SilentlyContinue | Where-Object { $_.Path } | Select-Object -First 1
+    if ($p) { return $p.Path }
+    foreach ($c in (Join-Path $env:APPDATA 'Spotify\Spotify.exe'), (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\Spotify.exe')) {
+        if (Test-Path $c) { return $c }
+    }
+    $null
+}
+# -Play: start the music too, as soon as Spotify is up (Refresh does it; it gives up after 30 s).
+function Open-Spotify([switch]$Play) {
+    try {
+        $exe = Find-SpotifyExe
+        if ($exe) { Start-Process -FilePath $exe }
+        else {
+            $pkg = Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($pkg) { Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!Spotify" } else { Start-Process 'spotify:' }
+        }
+        if ($Play) { $state.playAfterOpen = [DateTime]::Now.AddSeconds(30); $state.idle = $null }   # idle -> redrawn with "starting"
+    } catch {
+        Log "open spotify: $_"
+        $state.playAfterOpen = $null
+        $ArtistText.Text = 'Spotify не знайдено на цьому комп''ютері'   # stays: Show-Idle redraws only after a change
+    }
+    $state.force = $true
+}
 
 $PrevBtn.Add_Click({ if ($script:session) { $null = $script:session.TrySkipPreviousAsync() }; $state.force = $true })
 $NextBtn.Add_Click({ if ($script:session) { $null = $script:session.TrySkipNextAsync() }; $state.force = $true })
@@ -503,8 +618,10 @@ $PlayBtn.Add_Click({
         if (-not $state.playing) { $state.pos += ([DateTimeOffset]::Now - $state.at).TotalSeconds }
         $state.at = [DateTimeOffset]::Now
     } elseif ($script:session) {
-        $null = $script:session.TryTogglePlayPauseAsync()
-    } else { Open-Spotify }
+        # Spotify runs with no song loaded: try to play, and bring its window up to pick a song there.
+        $null = $script:session.TryPlayAsync()
+        Open-Spotify
+    } else { Open-Spotify -Play }
     $state.force = $true
 })
 $ArtBtn.Add_Click({ Open-Spotify })
@@ -541,7 +658,7 @@ $Root.Add_MouseLeftButtonDown({
     try {
         $win.DragMove()
         $r = [SpwDesk]::Rect($script:hwnd)
-        @{ x = $r[0]; y = $r[1] } | ConvertTo-Json | Set-Content -Path $settingsPath -Encoding UTF8
+        $h = Read-Settings; $h['x'] = $r[0]; $h['y'] = $r[1]; Save-Settings $h
     } catch { Log "drag: $_" }
 })
 
@@ -554,12 +671,10 @@ function Place-Widget {
     $wPx = [int]($win.Width * $scale); $hPx = [int]($win.Height * $scale)
 
     $x = $null; $y = $null
-    if (Test-Path $settingsPath) {
-        try {
-            $saved = Get-Content $settingsPath -Raw | ConvertFrom-Json
-            $pt = New-Object System.Drawing.Point ([int]$saved.x + 20), ([int]$saved.y + 20)
-            if (([System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.Bounds.Contains($pt) })) { $x = [int]$saved.x; $y = [int]$saved.y }
-        } catch { Log "settings: $_" }
+    $saved = Read-Settings
+    if ($null -ne $saved['x'] -and $null -ne $saved['y']) {
+        $pt = New-Object System.Drawing.Point ([int]$saved['x'] + 20), ([int]$saved['y'] + 20)
+        if (([System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.Bounds.Contains($pt) })) { $x = [int]$saved['x']; $y = [int]$saved['y'] }
     }
     if ($null -eq $x) {
         $scr = [System.Windows.Forms.Screen]::PrimaryScreen
