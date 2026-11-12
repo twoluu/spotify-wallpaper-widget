@@ -388,8 +388,8 @@ if ($Wood) {
     $PlayBtnStyle = @'
     <Style x:Key="PlayBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
       <Setter Property="Foreground" Value="#FF3B2208"/>
-      <Setter Property="Width" Value="38"/>
-      <Setter Property="Height" Value="38"/>
+      <Setter Property="Width" Value="32"/>
+      <Setter Property="Height" Value="32"/>
       <Setter Property="FontSize" Value="14"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -429,13 +429,13 @@ if ($Wood) {
     $PlayBtnStyle = @'
     <Style x:Key="PlayBtn" TargetType="Button" BasedOn="{StaticResource IconBtn}">
       <Setter Property="Foreground" Value="#FF101214"/>
-      <Setter Property="Width" Value="38"/>
-      <Setter Property="Height" Value="38"/>
+      <Setter Property="Width" Value="32"/>
+      <Setter Property="Height" Value="32"/>
       <Setter Property="FontSize" Value="14"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="B" Background="#F2FFFFFF" CornerRadius="19">
+            <Border x:Name="B" Background="#F2FFFFFF" CornerRadius="16">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
@@ -474,8 +474,8 @@ if ($Wood) {
     <Style x:Key="IconBtn" TargetType="ButtonBase">
       <Setter Property="Foreground" Value="#E6FFFFFF"/>
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Width" Value="34"/>
-      <Setter Property="Height" Value="34"/>
+      <Setter Property="Width" Value="30"/>
+      <Setter Property="Height" Value="30"/>
       <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
       <Setter Property="FontSize" Value="13"/>
       <Setter Property="Cursor" Value="Hand"/>
@@ -497,8 +497,8 @@ if ($Wood) {
     </Style>
 $PlayBtnStyle
     <Style x:Key="SmallBtn" TargetType="ButtonBase" BasedOn="{StaticResource IconBtn}">
-      <Setter Property="Width" Value="28"/>
-      <Setter Property="Height" Value="28"/>
+      <Setter Property="Width" Value="26"/>
+      <Setter Property="Height" Value="26"/>
       <Setter Property="FontSize" Value="12"/>
       <Setter Property="Foreground" Value="#B8FFFFFF"/>
     </Style>
@@ -551,41 +551,30 @@ $CardOpen
           <RowDefinition Height="*"/>
           <RowDefinition Height="Auto"/>
           <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock x:Name="TitleText" FontSize="17" FontWeight="SemiBold" Foreground="White"
+        <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold" Foreground="White"
                    TextTrimming="CharacterEllipsis" Margin="0,0,$TitleRight,0"/>
-        <TextBlock x:Name="ArtistText" Grid.Row="1" FontSize="13" Foreground="#B8FFFFFF"
-                   TextTrimming="CharacterEllipsis" Margin="0,1,28,0"/>
-        <!-- add the playing song to Liked Songs / take it out (needs the Spicetify extension) -->
-        <Button x:Name="HeartBtn" Grid.Row="1" Style="{StaticResource SmallBtn}" Content="&#xE006;" FontSize="13"
-                Width="26" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-4,0"/>
+        <TextBlock x:Name="ArtistText" Grid.Row="1" FontSize="12.5" Foreground="#B8FFFFFF"
+                   TextTrimming="CharacterEllipsis" Margin="0,0,30,0"/>
+        <!-- add the playing song to Liked Songs / take it out (needs the Spicetify extension); right, above repeat -->
+        <Button x:Name="HeartBtn" Grid.Row="1" Grid.RowSpan="2" Style="{StaticResource SmallBtn}" Content="&#xE006;" FontSize="14"
+                Width="28" Height="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,0"/>
 
         <!-- shuffle, previous, play/pause, next, repeat; shuffle and repeat are dimmed when the player does not allow them -->
-        <Grid Grid.Row="3" Margin="-7,0,0,0">
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-            <Button x:Name="ShuffleBtn" Style="{StaticResource SmallBtn}" Content="&#xE8B1;" Margin="0,0,3,0"/>
+        <Grid Grid.Row="3" Margin="-4,0,-4,0">
+          <Button x:Name="ShuffleBtn" Style="{StaticResource SmallBtn}" Content="&#xE8B1;" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
             <Button x:Name="PrevBtn" Style="{StaticResource IconBtn}" Content="&#xE892;"/>
-            <Button x:Name="PlayBtn" Style="{StaticResource PlayBtn}" Margin="5,0">
+            <Button x:Name="PlayBtn" Style="{StaticResource PlayBtn}" Margin="8,0">
               <TextBlock x:Name="PlayGlyph" Text="&#xE768;" Margin="1,0,0,0"/>
             </Button>
             <Button x:Name="NextBtn" Style="{StaticResource IconBtn}" Content="&#xE893;"/>
-            <Button x:Name="RepeatBtn" Style="{StaticResource SmallBtn}" Content="&#xE8EE;" Margin="3,0,0,0"/>
           </StackPanel>
-          <!-- Spotify's volume in 10 % steps: - and + (hold to repeat), a click left/right of the bar's end, the mouse wheel -->
-          <StackPanel x:Name="VolBox" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-            <RepeatButton x:Name="VolDownBtn" Style="{StaticResource SmallBtn}" Content="&#xE738;" FontSize="10" Width="22" Delay="450" Interval="300"/>
-            <Grid x:Name="VolArea" Width="60" Background="Transparent" Cursor="Hand" VerticalAlignment="Center">
-              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/></Grid.RowDefinitions>
-              <!-- the level as a number; hidden: the 10 blocks show it (kept for screen readers and tests) -->
-              <TextBlock x:Name="VolText" FontSize="11.5" FontWeight="SemiBold" Foreground="#F2FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,1" Visibility="Collapsed"/>
-              <!-- 10 blocks, one per 10 %: lit up to the volume -->
-              <UniformGrid x:Name="VolTrack" Grid.Row="1" Rows="1" Columns="10" Height="6" VerticalAlignment="Center"/>
-            </Grid>
-            <RepeatButton x:Name="VolUpBtn" Style="{StaticResource SmallBtn}" Content="&#xE710;" FontSize="10" Width="22" Delay="450" Interval="300"/>
-          </StackPanel>
+          <Button x:Name="RepeatBtn" Style="{StaticResource SmallBtn}" Content="&#xE8EE;" HorizontalAlignment="Right" VerticalAlignment="Center"/>
         </Grid>
 
-        <Grid Grid.Row="4" Margin="0,5,0,0">
+        <Grid Grid.Row="4" Margin="0,2,0,0">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
@@ -593,13 +582,35 @@ $CardOpen
           </Grid.ColumnDefinitions>
           <TextBlock x:Name="PosText" FontSize="10.5" Foreground="#A0FFFFFF" MinWidth="28" VerticalAlignment="Center"/>
           <!-- click anywhere on the bar to jump there (when the player allows it) -->
-          <Grid x:Name="SeekArea" Grid.Column="1" Height="14" Margin="6,0" Background="Transparent" VerticalAlignment="Center">
+          <Grid x:Name="SeekArea" Grid.Column="1" Height="12" Margin="6,0" Background="Transparent" VerticalAlignment="Center">
             <Grid x:Name="Track" Height="4" VerticalAlignment="Center">
               <Border Background="#33FFFFFF" CornerRadius="2"/>
               <Border x:Name="Fill" Background="#1DB954" CornerRadius="2" HorizontalAlignment="Left" Width="0"/>
             </Grid>
           </Grid>
           <TextBlock x:Name="EndText" Grid.Column="2" FontSize="10.5" Foreground="#A0FFFFFF" MinWidth="28" TextAlignment="Right" VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- Spotify's volume in 10 % steps: - and + (hold to repeat), a click on the bar, the mouse wheel -->
+        <Grid x:Name="VolBox" Grid.Row="5" Margin="0,0,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <RepeatButton x:Name="VolDownBtn" Style="{StaticResource SmallBtn}" Content="&#xE738;" FontSize="10" Width="28" Height="14"
+                        HorizontalContentAlignment="Left" Delay="450" Interval="300"/>
+          <Grid x:Name="VolArea" Grid.Column="1" Height="12" Margin="6,0" Background="Transparent" Cursor="Hand" VerticalAlignment="Center">
+            <!-- the level as a number; hidden: the 10 blocks show it (kept for screen readers and tests) -->
+            <TextBlock x:Name="VolText" Visibility="Collapsed"/>
+            <!-- one line, like the progress bar: white up to the volume -->
+            <Grid x:Name="VolTrack" Height="4" VerticalAlignment="Center">
+              <Border Background="#33FFFFFF" CornerRadius="2"/>
+              <Border x:Name="VolFill" Background="#E6FFFFFF" CornerRadius="2" HorizontalAlignment="Left" Width="0"/>
+            </Grid>
+          </Grid>
+          <RepeatButton x:Name="VolUpBtn" Grid.Column="2" Style="{StaticResource SmallBtn}" Content="&#xE710;" FontSize="10" Width="28" Height="14"
+                        Delay="450" Interval="300"/>
         </Grid>
       </Grid>
     </Grid>
@@ -610,7 +621,7 @@ $CardClose
 "@
 $win = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $xaml))
 foreach ($n in 'Root', 'WoodFrame', 'Panel', 'BgArt', 'ArtBtn', 'ArtBox', 'ArtGlyph', 'TitleText', 'ArtistText', 'PrevBtn', 'PlayBtn', 'PlayGlyph',
-               'NextBtn', 'ShuffleBtn', 'RepeatBtn', 'SeekArea', 'HeartBtn', 'VolBox', 'VolDownBtn', 'VolUpBtn', 'VolArea', 'VolText', 'VolTrack',
+               'NextBtn', 'ShuffleBtn', 'RepeatBtn', 'SeekArea', 'HeartBtn', 'VolBox', 'VolDownBtn', 'VolUpBtn', 'VolArea', 'VolText', 'VolTrack', 'VolFill',
                'PosText', 'Track', 'Fill', 'EndText', 'Dot') {
     Set-Variable -Name $n -Value $win.FindName($n) -Scope Script
 }
@@ -743,18 +754,11 @@ function Get-SpotifyVolume {
 function Set-SpotifyVolume([double]$v) {
     if ([SpwBridge]::Connected) { [SpwBridge]::Request([single]$v) } else { [SpwVol]::Set('Spotify', [single]$v) }
 }
-$VolOn  = $bc.ConvertFromString('#F2FFFFFF')
-$VolOff = $bc.ConvertFromString('#2EFFFFFF')
-$VolSegs = foreach ($i in 0..9) {
-    $b = New-Object System.Windows.Controls.Border
-    $b.Margin = [System.Windows.Thickness]::new(0.5, 0, 0.5, 0); $b.CornerRadius = [System.Windows.CornerRadius]::new(1); $b.Background = $VolOff
-    $null = $VolTrack.Children.Add($b); $b
-}
 function Show-Volume([double]$v) {
     $v = [math]::Max(0.0, [math]::Min(1.0, $v))
     $VolText.Text = '{0}' -f [int][math]::Round($v * 100)
-    $lit = [int][math]::Round($v * 10)
-    for ($i = 0; $i -lt 10; $i++) { $VolSegs[$i].Background = if ($i -lt $lit) { $VolOn } else { $VolOff } }
+    $w = $VolTrack.ActualWidth
+    if ($w -gt 0) { $VolFill.Width = $w * $v }
 }
 function Update-Volume {
     if ($null -ne $state.volTarget) { return }   # mid-step: the glide timer draws it
@@ -762,7 +766,7 @@ function Update-Volume {
     if ($state.volHold -and [DateTime]::Now -lt $state.volHold) { return }
     $v = Get-SpotifyVolume
     $state.vol = $v
-    if ($v -lt 0) { $VolBox.Opacity = 0.35; foreach ($b in $VolSegs) { $b.Background = $VolOff }; $VolText.Text = ''; return }
+    if ($v -lt 0) { $VolBox.Opacity = 0.35; $VolFill.Width = 0; $VolText.Text = ''; return }
     $VolBox.Opacity = 1
     Show-Volume $v
 }
@@ -886,7 +890,7 @@ $HeartBtn.Add_Click({
 })
 $VolDownBtn.Add_Click({ Step-Volume -1 })
 $VolUpBtn.Add_Click({ Step-Volume 1 })
-# A click on the bar: one step towards the click (on the lit blocks: quieter, on the dark ones: louder).
+# A click on the bar: one step towards the click (on the white part: quieter, past its end: louder).
 $VolArea.Add_MouseLeftButtonDown({
     param($sender, $e)
     $e.Handled = $true   # the card does not start moving
