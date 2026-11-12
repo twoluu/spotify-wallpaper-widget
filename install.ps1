@@ -10,12 +10,17 @@
 #   -NoAutostart         do not start it together with Windows
 #   -NoStart             do not start it now
 #   -Style glass|wood    the look: dark glass card (default) or pixel-art wooden frame
+#   -NoSpicetify         do not add the extension to Spicetify (see below)
+# If Spicetify (spicetify.app) is installed, the widget-volume.js extension is added to it: the widget's volume
+# then moves Spotify's own slider and the heart adds songs to Liked Songs. Spotify restarts once for that.
+# Without Spicetify the widget still works (volume through Windows, no heart).
 # Running it again updates the widget and keeps its saved position and look.
 param(
     [ValidateSet('', 'glass', 'wood')][string]$Style = '',
     [string]$InstallDir = (Join-Path $env:LOCALAPPDATA 'SpotifyWidget'),
     [switch]$NoAutostart,
-    [switch]$NoStart
+    [switch]$NoStart,
+    [switch]$NoSpicetify
 )
 $ErrorActionPreference = 'Stop'
 $Repo = 'twoluu/spotify-wallpaper-widget'
@@ -61,6 +66,12 @@ if ([IO.Path]::GetFullPath($src).TrimEnd('\') -ne $target) {
     }
 }
 if (-not (Test-Path $widget)) { throw "spotify-widget.ps1 was not found in $src" }
+$extSrc = Join-Path $src 'spicetify\widget-volume.js'
+$extCopy = Join-Path $target 'spicetify\widget-volume.js'
+if ((Test-Path $extSrc) -and $extSrc -ne $extCopy) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $extCopy) | Out-Null
+    Copy-Item $extSrc $extCopy -Force
+}
 Get-ChildItem $target -File | Unblock-File   # files from the internet would otherwise be blocked
 if ($tmp) { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 Write-Host "Installed to $target"
@@ -75,6 +86,28 @@ if ($Style) {
     $h['style'] = $Style
     $h | ConvertTo-Json | Set-Content -Path $settingsPath -Encoding UTF8
     Write-Host "Look: $Style"
+}
+
+# Spicetify: put the extension in and turn it on (only when it changed: applying restarts Spotify).
+$spicetify = Get-Command spicetify -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
+if (-not $spicetify -and (Test-Path "$env:LOCALAPPDATA\spicetify\spicetify.exe")) { $spicetify = "$env:LOCALAPPDATA\spicetify\spicetify.exe" }
+if ($NoSpicetify -or -not (Test-Path $extCopy)) {
+} elseif (-not $spicetify) {
+    Write-Host 'Spicetify not found: volume goes through Windows and the heart stays off (see README to add it later).'
+} else {
+    $extDir = Join-Path $env:APPDATA 'spicetify\Extensions'
+    $extLive = Join-Path $extDir 'widget-volume.js'
+    $changed = -not (Test-Path $extLive) -or (Get-FileHash $extLive).Hash -ne (Get-FileHash $extCopy).Hash
+    New-Item -ItemType Directory -Force -Path $extDir | Out-Null
+    Copy-Item $extCopy $extLive -Force
+    $listed = (& $spicetify config extensions 2>$null | Out-String) -match 'widget-volume\.js'
+    if (-not $listed) { & $spicetify config extensions widget-volume.js | Out-Null; $changed = $true }
+    if ($changed) {
+        Write-Host 'Adding the extension to Spicetify (Spotify restarts) ...'
+        & $spicetify apply | Out-Null
+        if ($LASTEXITCODE -ne 0) { & $spicetify backup apply | Out-Null }   # after a Spotify update
+    }
+    Write-Host 'Spicetify extension: on (volume = Spotify''s slider, heart = Liked Songs).'
 }
 
 # Start together with Windows: a shortcut in the user's Startup folder.
