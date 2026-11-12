@@ -1,5 +1,7 @@
 ![Spotify wallpaper widget](social-preview.png)
 
+![Скляний вигляд (за замовчуванням)](glass-preview.png)
+
 # Віджет Spotify на шпалерах
 
 Картка на робочому столі, під усіма вікнами: обкладинка, назва треку, виконавець, прогрес і кнопки.
@@ -96,6 +98,8 @@ powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File "$env:LOCALAPPDATA\
 ## English
 
 ![Spotify wallpaper widget](social-preview.png)
+
+![Glass look (default)](glass-preview.png)
 
 A Spotify "now playing" card for the Windows desktop (it sits on the wallpaper, under all windows): cover, title,
 artist, progress bar (click to seek) and shuffle / previous / play-pause / next / repeat. Two looks: dark glass
