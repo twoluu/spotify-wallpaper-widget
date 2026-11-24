@@ -23,7 +23,9 @@ New-Item -ItemType Directory -Force -Path $extDir | Out-Null
 Copy-Item $ext $extDir -Force
 if (-not ((& $spicetify config extensions | Out-String) -match 'widget-volume\.js')) { & $spicetify config extensions widget-volume.js }
 
-# re-apply after the update (Spotify restarts)
-& $spicetify backup apply
+# apply (Spotify restarts). Right after a Spotify update a plain apply fails and a new backup is needed;
+# with a backup already in place it is the other way round, so try apply first and fall back.
+& $spicetify apply
+if ($LASTEXITCODE -ne 0) { & $spicetify backup apply }
 Write-Host ''
 Write-Host 'Done. Spotify restarted with Spicetify; the widget''s volume and heart work again in a few seconds.'
