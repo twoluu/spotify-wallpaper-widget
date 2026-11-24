@@ -834,6 +834,8 @@ function Find-SpotifyExe {
 function Open-Spotify([switch]$Play) {
     try {
         $exe = Find-SpotifyExe
+        # The Microsoft Store version lives in WindowsApps, where its .exe cannot be started directly: start the app.
+        if ($exe -and $exe -match '\\WindowsApps\\') { $exe = $null }
         if ($exe) { Start-Process -FilePath $exe }
         else {
             $pkg = Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic' -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -915,10 +917,13 @@ $SeekArea.Add_MouseLeftButtonDown({
 })
 
 # Drag the card to move it; the new spot is saved.
+# A tap anywhere on the card (not on a button) opens Spotify; press and drag to move the card instead.
 $Root.Add_MouseLeftButtonDown({
     try {
-        $win.DragMove()
+        $before = [SpwDesk]::Rect($script:hwnd)
+        $win.DragMove()                                  # returns when the button is let go
         $r = [SpwDesk]::Rect($script:hwnd)
+        if ([math]::Abs($r[0] - $before[0]) + [math]::Abs($r[1] - $before[1]) -le 3) { Open-Spotify; return }   # did not move: a tap
         $h = Read-Settings; $h['x'] = $r[0]; $h['y'] = $r[1]; Save-Settings $h
     } catch { Log "drag: $_" }
 })
